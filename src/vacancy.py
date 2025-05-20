@@ -21,7 +21,13 @@ class Vacancy:
         return self._salary < other._salary
 
     def __eq__(self, other):
-        return self._salary == other._salary
+        if isinstance(other, type(self)):
+            return self._salary == other._salary
+        try:
+            return self._salary == int(other)
+        except (ValueError, TypeError):
+            return False
+
 
     def to_dict(self) -> dict:
         return {

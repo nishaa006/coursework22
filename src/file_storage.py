@@ -53,7 +53,7 @@ class JSONStorage(FileStorage):
                 if item.get("title") != title:
                     new_data.append(item)
             else:
-                new_data.append(item)
+                 new_data.append(item)
 
         self._save(new_data)
 
