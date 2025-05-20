@@ -27,7 +27,8 @@ class TestJSONStorage(unittest.TestCase):
         result = self.storage.get_vacancies("python")
 
         self.assertEqual(len(result), 1)
-        self.assertEqual(result[0], "Python Developer")
+        self.assertEqual(result[0]._title, "Python Developer")
+
 
 
     def test_duplicate_vacancy_not_added(self):
