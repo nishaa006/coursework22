@@ -2,26 +2,20 @@ import requests
 import json
 
 
-def fetch_vacancies(api_key: str, keyword: str):
-    """
-    Получает вакансии через API и сохраняет их в файл.
+class HeadHunterAPI:
+    """Класс для получения вакансий с hh.ru по ключевому слову."""
 
-    Args:
-        api_key (str): API ключ.
-        keyword (str): Ключевое слово для поиска вакансий.
-    """
-    url = "https://api.hh.ru/vacancies"
-    params = {
-        "text": keyword,
-        "per_page": 100
-    }
-    headers = {
-        "User-Agent": "HH-User-Agent",
-        "Authorization": f"Bearer {api_key}"
-    }
+    def get_vacancies(self, keyword: str) -> list[dict]:
+        """Возвращает список вакансий с hh.ru по ключевому слову."""
+        url = "https://api.hh.ru/vacancies"
+        params = {
+            "text": keyword,
+            "per_page": 100
+        }
+        headers = {
+            "User-Agent": "HH-User-Agent"
+        }
 
-    response = requests.get(url, params=params, headers=headers)
-    vacancies = response.json().get("items", [])
-
-    with open("vacancies.json", "w", encoding="utf-8") as f:
-        json.dump(vacancies, f, indent=4)
+        response = requests.get(url, params=params, headers=headers)
+        response.raise_for_status()
+        return response.json().get("items", [])
