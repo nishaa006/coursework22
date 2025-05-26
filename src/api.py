@@ -1,27 +1,21 @@
-from abc import ABC, abstractmethod
 import requests
+import json
 
-class VacancyAPI(ABC):
-    @abstractmethod
-    def get_vacancies(self, keyword: str) -> list:
-        pass
 
-class HeadHunterAPI(VacancyAPI):
-    BASE_URL = "https://api.hh.ru/vacancies"
+class HeadHunterAPI:
+    """Класс для получения вакансий с hh.ru по ключевому слову."""
 
-    def __init__(self):
-        self._session = requests.Session()
-
-    def _connect(self, keyword: str) -> dict:
+    def get_vacancies(self, keyword: str) -> list[dict]:
+        """Возвращает список вакансий с hh.ru по ключевому слову."""
+        url = "https://api.hh.ru/vacancies"
         params = {
             "text": keyword,
-            "per_page": 50
+            "per_page": 100
         }
-        response = self._session.get(self.BASE_URL, params=params)
-        if response.status_code != 200:
-            raise ConnectionError("Failed to connect to HeadHunter API")
-        return response.json()
+        headers = {
+            "User-Agent": "HH-User-Agent"
+        }
 
-    def get_vacancies(self, keyword: str) -> list:
-        data = self._connect(keyword)
-        return data.get("items", [])
+        response = requests.get(url, params=params, headers=headers)
+        response.raise_for_status()
+        return response.json().get("items", [])

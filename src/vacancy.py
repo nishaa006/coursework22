@@ -1,41 +1,71 @@
-from functools import total_ordering
-
-@total_ordering
 class Vacancy:
-    __slots__ = ("_title", "_link", "_salary", "_description")
+    """
+    Класс для представления вакансии.
+    """
 
-    def __init__(self, title: str, link: str, salary: int | str, description: str):
-        self._title = title
-        self._link = link
-        self._salary = self._validate_salary(salary)
-        self._description = description
+    def __init__(self, title: str, link: str, salary: dict | None, description: str):
+        """
+        Инициализация вакансии.
 
-    def _validate_salary(self, salary) -> int:
-        if isinstance(salary, int):
-            return salary
-        if isinstance(salary, dict) and salary.get("from"):
-            return salary["from"]
-        return 0
+        :param title: Название вакансии
+        :param link: Ссылка на вакансию
+        :param salary: Зарплата (словарь с полями 'from', 'to', 'currency') или None
+        :param description: Описание вакансии
+        """
+        self.title = title
+        self.link = link
+        self.salary = salary
+        self.description = description
+        self._salary = self._parse_salary(salary)
 
-    def __lt__(self, other):
-        return self._salary < other._salary
+    def _parse_salary(self, salary: dict | None) -> int:
+        """
+        Преобразует словарь зарплаты в одно значение (среднее) для сравнения.
 
-    def __eq__(self, other):
-        if isinstance(other, type(self)):
-            return self._salary == other._salary
-        try:
-            return self._salary == int(other)
-        except (ValueError, TypeError):
-            return False
-
+        :param salary: словарь {'from': int, 'to': int}
+        :return: int — средняя зарплата или 0, если данных нет
+        """
+        if not salary:
+            return 0
+        _from = salary.get("from")
+        _to = salary.get("to")
+        if _from and _to:
+            return (_from + _to) // 2
+        return _from or _to or 0
 
     def to_dict(self) -> dict:
+        """
+        Преобразует объект вакансии в словарь для JSON-сохранения.
+
+        :return: dict
+        """
         return {
-            "title": self._title,
-            "link": self._link,
-            "salary": self._salary,
-            "description": self._description
+            "title": self.title,
+            "link": self.link,
+            "salary": self.salary,
+            "description": self.description
         }
 
-    def __str__(self):
-        return f"{self._title} | {self._salary} | {self._link}\n{self._description}"
+    def __eq__(self, other):
+        """
+        Сравнение вакансий по зарплате или названию.
+
+        :param other: Vacancy или str/int
+        :return: bool
+        """
+        if isinstance(other, Vacancy):
+            return self._salary == other._salary
+        if isinstance(other, (int, float)):
+            return self._salary == int(other)
+        if isinstance(other, str):
+            return self.title.lower() == other.lower()
+        return False
+
+    def __lt__(self, other):
+        """Сравнение вакансий по зарплате (для сортировки)."""
+        if isinstance(other, Vacancy):
+            return self._salary < other._salary
+        return NotImplemented
+
+    def __repr__(self):
+        return f"Vacancy('{self.title}', salary={self._salary})"
