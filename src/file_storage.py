@@ -3,6 +3,7 @@ import json
 import os
 from src.vacancy import Vacancy
 
+
 class FileStorage(ABC):
     """Абстрактный класс для хранилищ вакансий."""
 
@@ -10,7 +11,7 @@ class FileStorage(ABC):
     def add_vacancy(self, vacancy: Vacancy): pass
 
     @abstractmethod
-    def get_vacancies(self, keyword: str) -> list[Vacancy]: pass
+    def get_vacancies(self) -> list[Vacancy]: pass
 
     @abstractmethod
     def delete_vacancy(self, title: str): pass
@@ -39,20 +40,18 @@ class JSONStorage(FileStorage):
     def add_vacancy(self, vacancy: Vacancy):
         """Добавляет вакансию в хранилище."""
         data = self._load()
-        data.append(vacancy.to_dict())
-        self._save(data)
+        if vacancy.to_dict() not in data:
+            data.append(vacancy.to_dict())
+            self._save(data)
 
-    def get_vacancies(self, keyword: str = "") -> list[Vacancy]:
+    def get_vacancies(self) -> list[Vacancy]:
         """
-        Возвращает список вакансий, содержащих ключевое слово в описании.
+        Возвращает список всех вакансий.
         """
         data = self._load()
         result = []
         for v in data:
-            if isinstance(v, dict):
-                description = v.get("description", "").lower()
-                if keyword.lower() in description:
-                    result.append(Vacancy(**v))
+            result.append(Vacancy(**v))
         return result
 
     def delete_vacancy(self, title: str):
@@ -60,27 +59,19 @@ class JSONStorage(FileStorage):
         Удаляет вакансию по названию.
         """
         data = self._load()
-        new_data = []
-
-        for item in data:
-            if isinstance(item, dict):
-                if item.get("title") != title:
-                    new_data.append(item)
-            else:
-                new_data.append(item)
-
+        new_data = [item for item in data if isinstance(item, dict) and item.get("title") != title]
         self._save(new_data)
 
-    def get_vacancies_by_title(self, keyword: str) -> list[Vacancy]:
+    def get_vacancies_by_description(self, keyword: str) -> list[Vacancy]:
         """
-        Возвращает список вакансий, в названии которых содержится ключевое слово.
+        Возвращает список вакансий, в описании которых содержится ключевое слово.
         """
         data = self._load()
         filtered = []
         for item in data:
-            if isinstance(item, dict) and keyword.lower() in item.get("name", "").lower():
+            if isinstance(item, dict) and keyword.lower() in item.get("description", "").lower():
                 filtered.append(Vacancy(
-                    title=item.get("name"),
+                    title=item.get("title"),
                     link=item.get("link"),
                     salary=item.get("salary"),
                     description=item.get("description")
