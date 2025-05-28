@@ -1,8 +1,16 @@
 import requests
-import json
+from abc import ABC, abstractmethod
 
 
-class HeadHunterAPI:
+class AbstractAPI(ABC):
+    """Abstract class for job APIs"""
+
+    @abstractmethod
+    def get_vacancies(self, keyword: str) -> list[dict]:
+        pass
+
+
+class HeadHunterAPI(AbstractAPI):
     """Класс для получения вакансий с hh.ru по ключевому слову."""
 
     def get_vacancies(self, keyword: str) -> list[dict]:

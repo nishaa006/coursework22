@@ -51,7 +51,7 @@ def user_interaction():
 
         elif choice == "3":
             keyword = input("Введите ключевое слово для поиска по описанию: ").strip()
-            matched = storage.get_vacancies(keyword)
+            matched = storage.get_vacancies_by_description(keyword)
             if matched:
                 print(f"\nНайдено {len(matched)} вакансий:")
                 for vac in matched:
