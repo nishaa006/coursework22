@@ -1,76 +1,65 @@
 import unittest
 import os
 import json
+from tempfile import NamedTemporaryFile
 from src.file_storage import JSONStorage
 from src.vacancy import Vacancy
 
 
 class TestJSONStorage(unittest.TestCase):
     def setUp(self):
-        self.test_file = "test_vacancies.json"
-        self.storage = JSONStorage(filename=self.test_file)
+        self.temp_file = NamedTemporaryFile(delete=False)
+        self.temp_file.close()
+        self.storage = JSONStorage(self.temp_file.name)
 
+        self.sample_vacancy = Vacancy(
+            title="Python Developer",
+            link="https://example.com/vacancy/1",
+            salary={"from": 100000, "to": 150000},
+            description="Develop Python apps"
+        )
 
     def tearDown(self):
-        if os.path.exists(self.test_file):
-            os.remove(self.test_file)
+        os.unlink(self.temp_file.name)
 
+    def test_add_vacancy(self):
+        self.storage.add_vacancy(self.sample_vacancy)
 
-    def test_add_and_get_vacancy(self):
-        vacancy = Vacancy(
-            title="Python Developer",
-            link="http://example.com",
-            salary={"from": 100000, "to": 150000},
-            description="Python, Django"
-        )
-        self.storage.add_vacancy(vacancy)
-        result = self.storage.get_vacancies("python")
-
-        self.assertEqual(len(result), 1)
-        self.assertEqual(result[0]._title, "Python Developer")
-
-
-
-    def test_duplicate_vacancy_not_added(self):
-        vacancy = Vacancy(
-            title="Python Developer",
-            link="http://example.com",
-            salary={"from": 100000, "to": 150000},
-            description="Python, Flask"
-        )
-        self.storage.add_vacancy(vacancy)
-        self.storage.add_vacancy(vacancy)  # Повторно
-
-        with open(self.test_file, "r") as f:
+        with open(self.temp_file.name, 'r') as f:
             data = json.load(f)
-        self.assertEqual(len(data), 2)
 
+        self.assertEqual(len(data), 1)
+        self.assertEqual(data[0]['title'], "Python Developer")
+
+    def test_add_duplicate_vacancy(self):
+        self.storage.add_vacancy(self.sample_vacancy)
+        self.storage.add_vacancy(self.sample_vacancy)  # Add same vacancy again
+
+        with open(self.temp_file.name, 'r') as f:
+            data = json.load(f)
+
+        self.assertEqual(len(data), 1)  # Should still be only one
+
+    def test_get_vacancies(self):
+        self.storage.add_vacancy(self.sample_vacancy)
+        vacancies = self.storage.get_vacancies()
+
+        self.assertEqual(len(vacancies), 1)
+        self.assertIsInstance(vacancies[0], Vacancy)
+        self.assertEqual(vacancies[0].title, "Python Developer")
+
+    def test_get_vacancies_by_description(self):
+        self.storage.add_vacancy(self.sample_vacancy)
+
+        found = self.storage.get_vacancies_by_description("python")
+        self.assertEqual(len(found), 1)
+
+        not_found = self.storage.get_vacancies_by_description("java")
+        self.assertEqual(len(not_found), 0)
 
     def test_delete_vacancy(self):
-        vacancy = Vacancy(
-            title="To Delete",
-            link="http://example.com",
-            salary={"from": 100000, "to": 150000},
-            description="Удалить эту вакансию"
-        )
-        self.storage.add_vacancy(vacancy)
-        self.storage.delete_vacancy("To Delete")
+        self.storage.add_vacancy(self.sample_vacancy)
+        self.storage.delete_vacancy("Python Developer")
 
-        result = self.storage.get_vacancies("Удалить")
-        self.assertEqual(len(result), 0)
-
-
-    def test_get_vacancies_no_match(self):
-        vacancy = Vacancy(
-            title="Java Developer",
-            link="http://example.com",
-            salary={"from": 80000, "to": 120000},
-            description="Java, Spring"
-        )
-        self.storage.add_vacancy(vacancy)
-        result = self.storage.get_vacancies("python")
-        self.assertEqual(len(result), 0)
-
-
-if __name__ == '__main__':
-    unittest.main()
+        vacancies = self.storage.get_vacancies()
+        self.assertEqual(len(vacancies), 0)

@@ -6,39 +6,45 @@ from src.api import HeadHunterAPI
 class TestHeadHunterAPI(unittest.TestCase):
     def setUp(self):
         self.api = HeadHunterAPI()
+        self.sample_response = {
+            "items": [
+                {
+                    "name": "Python Developer",
+                    "alternate_url": "https://hh.ru/vacancy/1",
+                    "salary": {"from": 100000, "to": 150000, "currency": "RUR"},
+                    "snippet": {"responsibility": "Develop Python apps"}
+                }
+            ]
+        }
 
-    @patch('src.api.requests.Session.get')
-    def test_connect_success(self, mock_get):
-        # Мокаем ответ от API
+    @patch('requests.get')
+    def test_get_vacancies_success(self, mock_get):
         mock_response = Mock()
-        expected_json = {"items": [{"name": "Python Developer"}]}
-        mock_response.status_code = 200
-        mock_response.json.return_value = expected_json
+        mock_response.json.return_value = self.sample_response
+        mock_response.raise_for_status.return_value = None
         mock_get.return_value = mock_response
 
-        # Вызов
-        result = self.api._connect("python")
+        vacancies = self.api.get_vacancies("Python")
 
-        # Проверка
         mock_get.assert_called_once()
-        self.assertEqual(result, expected_json)
+        self.assertEqual(len(vacancies), 1)
+        self.assertEqual(vacancies[0]['name'], "Python Developer")
 
-    @patch('src.api.HeadHunterAPI._connect')
-    def test_get_vacancies_returns_items(self, mock_connect):
-        mock_connect.return_value = {"items": [{"name": "Backend Dev"}, {"name": "Data Scientist"}]}
-        result = self.api.get_vacancies("backend")
-        self.assertEqual(len(result), 2)
-        self.assertEqual(result[0]["name"], "Backend Dev")
-
-    @patch('src.api.requests.Session.get')
-    def test_connect_failure_raises_exception(self, mock_get):
+    @patch('requests.get')
+    def test_get_vacancies_empty(self, mock_get):
         mock_response = Mock()
-        mock_response.status_code = 500
+        mock_response.json.return_value = {"items": []}
+        mock_response.raise_for_status.return_value = None
         mock_get.return_value = mock_response
 
-        with self.assertRaises(ConnectionError):
-            self.api._connect("java")
+        vacancies = self.api.get_vacancies("NonExistentLanguage")
+        self.assertEqual(len(vacancies), 0)
 
+    @patch('requests.get')
+    def test_get_vacancies_error(self, mock_get):
+        mock_response = Mock()
+        mock_response.raise_for_status.side_effect = Exception("API Error")
+        mock_get.return_value = mock_response
 
-if __name__ == '__main__':
-    unittest.main()
+        with self.assertRaises(Exception):
+            self.api.get_vacancies("Python")
